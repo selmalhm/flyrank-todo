@@ -1,6 +1,7 @@
 const express = require('express');
 const app = express();
 const port = 3000;
+app.use(express.json());
 
 const tasks = [{ id: 1, title: 'Sample Task', done: false }, { id: 2, title: 'Another Task', done: true }, { id: 3, title: 'Third Task', done: false }];
 
@@ -26,7 +27,14 @@ app.get('/tasks/:id', (req, res) => {
     res.send(task);
 });
 
-
+app.post('/tasks', (req, res) => {
+    const newTask = req.body;
+    if(!newTask.title) {
+        return res.status(400).json({ "error": "Task title is required" });
+    }
+    tasks.push({ id: tasks.length + 1, title: newTask.title, done: false });
+    res.status(201).json({ "message": "Task created", "task": newTask });
+});
 
 app.listen(port, () => {
     console.log(`App listening on port ${port}`);

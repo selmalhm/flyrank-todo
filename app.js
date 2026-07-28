@@ -1,6 +1,11 @@
 const express = require('express');
+const swaggerUi = require('swagger-ui-express');
+const swaggerDocument = require('./openapi.json');
+
 const app = express();
 const port = 3000;
+app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
+
 app.use(express.json());
 
 const tasks = [{ id: 1, title: 'Sample Task', done: false }, { id: 2, title: 'Another Task', done: true }, { id: 3, title: 'Third Task', done: false }];
@@ -29,12 +34,44 @@ app.get('/tasks/:id', (req, res) => {
 
 app.post('/tasks', (req, res) => {
     const newTask = req.body;
-    if(!newTask.title) {
+    if (!newTask.title) {
         return res.status(400).json({ "error": "Task title is required" });
     }
     tasks.push({ id: tasks.length + 1, title: newTask.title, done: false });
     res.status(201).json({ "message": "Task created", "task": newTask });
 });
+
+app.put('/tasks/:id', (req, res) => {
+    const updateTaskId = parseInt(req.params.id);
+    const updateTask = tasks.find(obj => obj.id === updateTaskId);
+
+    if (!updateTask) {
+        return res.status(404).json({ "error": `Task ${updateTaskId} not found` });
+    }
+
+    if (req.body.title === undefined && req.body.done === undefined) {
+        return res.status(400).json({ "error": "Task title or done status is required" });
+    }
+
+    !(req.body.title === undefined) ? updateTask.title = req.body.title : updateTask.title = updateTask.title;
+    !(req.body.done === undefined) ? updateTask.done = req.body.done : updateTask.done = updateTask.done;
+
+
+    res.status(200).json({ "message": `Task ${updateTaskId} updated`, "task": updateTask });
+
+})
+
+app.delete('/tasks/:id', (req, res) => {
+    const deleteTaskId = parseInt(req.params.id);
+    const deleteTaskIndex = tasks.findIndex(obj => obj.id === deleteTaskId);
+
+    if (deleteTaskIndex === undefined) {
+        return res.status(404).json({ "error": `Task ${deleteTaskId} not found` });
+    }
+
+    tasks.splice(deleteTaskIndex, 1);
+    res.status(200).json({});
+})
 
 app.listen(port, () => {
     console.log(`App listening on port ${port}`);

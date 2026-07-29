@@ -8,6 +8,8 @@ app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
 app.use(express.json());
 
+const toBool = (string) => string === 'true';
+
 const tasks = [{ id: 1, title: 'Sample Task', done: false }, { id: 2, title: 'Another Task', done: true }, { id: 3, title: 'Third Task', done: false }];
 
 app.get('/', (req, res) => {
@@ -19,7 +21,7 @@ app.get('/health', (req, res) => {
 });
 
 app.get('/tasks', (req, res) => {
-    res.send(tasks);
+    req.query.done ? res.send(tasks.filter(obj => obj.done === toBool(req.query.done))) : res.send(tasks);
 });
 
 app.get('/tasks/:id', (req, res) => {

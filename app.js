@@ -21,7 +21,17 @@ app.get('/health', (req, res) => {
 });
 
 app.get('/tasks', (req, res) => {
-    req.query.done ? res.send(tasks.filter(obj => obj.done === toBool(req.query.done))) : res.send(tasks);
+    let filteredTasks = tasks;
+    if (req.query.done) {
+        filteredTasks = filteredTasks.filter(obj => obj.done === toBool(req.query.done));
+    }
+
+    if (req.query.search) {
+        const searchTerm = req.query.search.toLowerCase();
+        filteredTasks = filteredTasks.filter(obj => obj.title.toLowerCase().includes(searchTerm));
+    }
+
+    res.send(filteredTasks)
 });
 
 app.get('/tasks/:id', (req, res) => {

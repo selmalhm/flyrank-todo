@@ -44,6 +44,22 @@ app.get('/tasks/:id', (req, res) => {
     res.send(task);
 });
 
+app.get('/stats', (req, res) => {
+    const totalTasks = tasks.length;
+    let doneTasks = 0; 
+    let OpenTasks = 0;
+
+    for (let task of tasks) {
+        if (task.done) {
+            doneTasks++;
+        } else {
+            OpenTasks++;
+        }
+    }
+
+    res.send({"total": totalTasks, "done": doneTasks, "open": OpenTasks})
+});
+
 app.post('/tasks', (req, res) => {
     const newTask = req.body;
     if (!newTask.title) {

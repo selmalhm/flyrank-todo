@@ -1,12 +1,32 @@
 const express = require('express');
 const swaggerUi = require('swagger-ui-express');
 const swaggerDocument = require('./openapi.json');
+const Database = require('better-sqlite3');
 
 const app = express();
 const port = 3000;
 app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
 app.use(express.json());
+
+const db = new Database('tasks.db');
+db.exec(`
+    CREATE TABLE IF NOT EXISTS tasks (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      title TEXT NOT NULL,
+      done BIT
+    )
+`);
+
+const numberOfRows = db.prepare("SELECT COUNT(*) AS count FROM tasks;").get();
+
+if (numberOfRows.count === 0) {
+    const insert = db.prepare("INSERT INTO tasks (title, done) VALUES (?, ?);");
+
+    insert.run("firstTask", 0);
+    insert.run("secondTask", 1);
+    insert.run("thirdTask", 0);
+}
 
 const toBool = (string) => string === 'true';
 
@@ -46,7 +66,7 @@ app.get('/tasks/:id', (req, res) => {
 
 app.get('/stats', (req, res) => {
     const totalTasks = tasks.length;
-    let doneTasks = 0; 
+    let doneTasks = 0;
     let OpenTasks = 0;
 
     for (let task of tasks) {
@@ -57,7 +77,7 @@ app.get('/stats', (req, res) => {
         }
     }
 
-    res.send({"total": totalTasks, "done": doneTasks, "open": OpenTasks})
+    res.send({ "total": totalTasks, "done": doneTasks, "open": OpenTasks })
 });
 
 app.post('/tasks', (req, res) => {
@@ -104,3 +124,5 @@ app.delete('/tasks/:id', (req, res) => {
 app.listen(port, () => {
     console.log(`App listening on port ${port}`);
 });
+
+// db.close(); // Removed to keep the database connection open

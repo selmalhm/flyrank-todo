@@ -91,34 +91,53 @@ app.post('/tasks', (req, res) => {
 });
 
 app.put('/tasks/:id', (req, res) => {
-    const updateTaskId = parseInt(req.params.id);
-    const updateTask = tasks.find(obj => obj.id === updateTaskId);
+    const taskId = parseInt(req.params.id);
 
-    if (!updateTask) {
-        return res.status(404).json({ "error": `Task ${updateTaskId} not found` });
+    if (isNaN(taskId)) {
+        return res.status(400).json({ "error": "Invalid task ID" });
     }
 
     if (req.body.title === undefined && req.body.done === undefined) {
         return res.status(400).json({ "error": "Task title or done status is required" });
     }
 
-    !(req.body.title === undefined) ? updateTask.title = req.body.title : updateTask.title = updateTask.title;
-    !(req.body.done === undefined) ? updateTask.done = req.body.done : updateTask.done = updateTask.done;
+    const task = db.prepare("SELECT * FROM tasks WHERE id = ?").get(taskId);
 
-
-    res.status(200).json({ "message": `Task ${updateTaskId} updated`, "task": updateTask });
-
-})
-
-app.delete('/tasks/:id', (req, res) => {
-    const deleteTaskId = parseInt(req.params.id);
-    const deleteTaskIndex = tasks.findIndex(obj => obj.id === deleteTaskId);
-
-    if (deleteTaskIndex === undefined) {
-        return res.status(404).json({ "error": `Task ${deleteTaskId} not found` });
+    if (!task) {
+        return res.status(404).json({ "error": `Task ${taskId} not found` });
     }
 
-    tasks.splice(deleteTaskIndex, 1);
+    const updatedTitle = req.body.title ?? task.title;
+    const updatedDone = req.body.done ?? task.done;
+
+    db.prepare("UPDATE tasks SET title = ?, done = ? WHERE id = ?")
+        .run(updatedTitle, updatedDone, taskId);
+
+    res.status(200).json({
+        "message": `Task ${taskId} updated`,
+        "task": {
+            id: taskId,
+            title: updatedTitle,
+            done: updatedDone
+        }
+    });
+});
+
+app.delete('/tasks/:id', (req, res) => {
+    const taskId = parseInt(req.params.id);
+
+    if (isNaN(taskId)) {
+        return res.status(400).json({ "error": "Invalid task ID" });
+    }
+
+    const task = db.prepare("SELECT * FROM tasks WHERE id = ?").get(taskId);
+
+    if (!task) {
+        return res.status(404).json({ "error": `Task ${taskId} not found` });
+    }
+
+    db.prepare("DELETE FROM tasks WHERE id = ?").run(taskId);
+
     res.status(200).json({});
 })
 

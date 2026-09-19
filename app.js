@@ -81,10 +81,12 @@ app.get('/stats', (req, res) => {
 
 app.post('/tasks', (req, res) => {
     const newTask = req.body;
+    const insert = db.prepare("INSERT INTO tasks (title, done) VALUES (?, ?)");
+
     if (!newTask.title) {
         return res.status(400).json({ "error": "Task title is required" });
     }
-    tasks.push({ id: tasks.length + 1, title: newTask.title, done: false });
+    insert.run(newTask.title, 0);
     res.status(201).json({ "message": "Task created", "task": newTask });
 });
 

@@ -28,9 +28,7 @@ if (numberOfRows.count === 0) {
     insert.run("thirdTask", 0);
 }
 
-const toBool = (string) => string === 'true';
-
-const tasks = [{ id: 1, title: 'Sample Task', done: false }, { id: 2, title: 'Another Task', done: true }, { id: 3, title: 'Third Task', done: false }];
+const tasks = db.prepare("SELECT * FROM tasks").all();
 
 app.get('/', (req, res) => {
     res.json({ "name": "Task API", "version": "1.0", "endpoints": ["/tasks"] });
@@ -43,7 +41,7 @@ app.get('/health', (req, res) => {
 app.get('/tasks', (req, res) => {
     let filteredTasks = tasks;
     if (req.query.done) {
-        filteredTasks = filteredTasks.filter(obj => obj.done === toBool(req.query.done));
+        filteredTasks = filteredTasks.filter(obj => obj.done == req.query.done);
     }
 
     if (req.query.search) {
@@ -55,8 +53,9 @@ app.get('/tasks', (req, res) => {
 });
 
 app.get('/tasks/:id', (req, res) => {
+    const request = db.prepare("SELECT * FROM tasks WHERE id = ?");
     const taskId = parseInt(req.params.id);
-    const task = tasks.find(obj => obj.id === taskId);
+    const task = request.get(taskId)
 
     if (!task) {
         return res.status(404).json({ "error": `Task ${taskId} not found` });

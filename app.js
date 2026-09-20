@@ -46,7 +46,8 @@ app.get('/tasks', (req, res) => {
 
     if (req.query.search) {
         const searchTerm = req.query.search.toLowerCase();
-        filteredTasks = filteredTasks.filter(obj => obj.title.toLowerCase().includes(searchTerm));
+        const searchQuery = db.prepare("SELECT * FROM tasks WHERE title LIKE ?;").all(searchTerm)
+        filteredTasks = searchQuery;
     }
 
     res.send(filteredTasks)
@@ -114,7 +115,7 @@ app.put('/tasks/:id', (req, res) => {
     db.prepare("UPDATE tasks SET title = ?, done = ? WHERE id = ?")
         .run(updatedTitle, updatedDone, taskId);
 
-   
+
     app.get('/tasks', (req, res));
 
     res.status(200).json({

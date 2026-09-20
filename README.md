@@ -43,3 +43,20 @@ Keep-Alive: timeout=5
 You can interact with and test all API endpoints directly from your browser by navigating to http://localhost:3000/docs.
 
 ![Swagger UI](./assets/SwaggerUI.png "Swagger UI")
+
+### Database Architecture
+This project uses **SQLite** for data persistence. 
+* **Why SQLite:** It was chosen because it requires zero background services or setup, stores the entire database in a single file, and ensures task data survives server restarts.
+* **File Location:** The database lives in a `tasks.db` file in the root directory. It is created automatically when the server first runs. This file is typically added to `.gitignore` so that every new clone of the repository starts with a fresh database.
+
+Here is a view of the database :
+
+![DB Browser SQLite](./assets/database.png "DB Browser SQLite")
+
+**Example SQL Query (Stage 4):**
+Here is an example of a query used to fetch a task that is marked as done / complete:
+```sql
+SELECT * FROM tasks WHERE done = 1;
+``` 
+
+![DB Browser SQLite](./assets/sqlquery.png "DB Browser SQLite")

@@ -41,12 +41,13 @@ app.get('/health', (req, res) => {
 app.get('/tasks', (req, res) => {
     let filteredTasks = tasks;
     if (req.query.done) {
-        filteredTasks = filteredTasks.filter(obj => obj.done == req.query.done);
+        const doneQuery = db.prepare("SELECT * FROM tasks WHERE done = ?").all(req.query.done);
+        filteredTasks = doneQuery;
     }
 
     if (req.query.search) {
         const searchTerm = req.query.search.toLowerCase();
-        const searchQuery = db.prepare("SELECT * FROM tasks WHERE title LIKE ?;").all(searchTerm)
+        const searchQuery = db.prepare("SELECT * FROM tasks WHERE title LIKE ?;").all(searchTerm);
         filteredTasks = searchQuery;
     }
 
@@ -65,19 +66,11 @@ app.get('/tasks/:id', (req, res) => {
 });
 
 app.get('/stats', (req, res) => {
-    const totalTasks = tasks.length;
-    let doneTasks = 0;
-    let OpenTasks = 0;
+    const countDone = db.prepare("SELECT COUNT(*) AS count FROM tasks WHERE done = 1;").get();
+    const countTodo = db.prepare("SELECT COUNT(*) AS count FROM tasks WHERE done = 0;").get();
+    const totalTasks = db.prepare("SELECT COUNT(*) AS count FROM tasks;").get();
 
-    for (let task of tasks) {
-        if (task.done) {
-            doneTasks++;
-        } else {
-            OpenTasks++;
-        }
-    }
-
-    res.send({ "total": totalTasks, "done": doneTasks, "open": OpenTasks })
+    res.send({ "total": totalTasks, "done": countDone, "open": countTodo })
 });
 
 app.post('/tasks', (req, res) => {
@@ -88,7 +81,6 @@ app.post('/tasks', (req, res) => {
         return res.status(400).json({ "error": "Task title is required" });
     }
     insert.run(newTask.title, 0);
-    app.get('/tasks', (req, res));
     res.status(201).json({ "message": "Task created", "task": newTask });
 });
 
@@ -116,8 +108,6 @@ app.put('/tasks/:id', (req, res) => {
         .run(updatedTitle, updatedDone, taskId);
 
 
-    app.get('/tasks', (req, res));
-
     res.status(200).json({
         "message": `Task ${taskId} updated`,
         "task": {
@@ -143,13 +133,9 @@ app.delete('/tasks/:id', (req, res) => {
 
     db.prepare("DELETE FROM tasks WHERE id = ?").run(taskId);
 
-    app.get('/tasks', (req, res));
-
     res.status(200).json({});
 })
 
 app.listen(port, () => {
     console.log(`App listening on port ${port}`);
 });
-
-// db.close(); // Removed to keep the database connection open

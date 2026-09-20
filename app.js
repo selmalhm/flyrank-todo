@@ -87,6 +87,7 @@ app.post('/tasks', (req, res) => {
         return res.status(400).json({ "error": "Task title is required" });
     }
     insert.run(newTask.title, 0);
+    app.get('/tasks', (req, res));
     res.status(201).json({ "message": "Task created", "task": newTask });
 });
 
@@ -113,6 +114,9 @@ app.put('/tasks/:id', (req, res) => {
     db.prepare("UPDATE tasks SET title = ?, done = ? WHERE id = ?")
         .run(updatedTitle, updatedDone, taskId);
 
+   
+    app.get('/tasks', (req, res));
+
     res.status(200).json({
         "message": `Task ${taskId} updated`,
         "task": {
@@ -137,6 +141,8 @@ app.delete('/tasks/:id', (req, res) => {
     }
 
     db.prepare("DELETE FROM tasks WHERE id = ?").run(taskId);
+
+    app.get('/tasks', (req, res));
 
     res.status(200).json({});
 })

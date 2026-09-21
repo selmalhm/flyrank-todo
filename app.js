@@ -14,7 +14,9 @@ db.exec(`
     CREATE TABLE IF NOT EXISTS tasks (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       title TEXT NOT NULL,
-      done BIT
+      done BIT,
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at TEXT
     )
 `);
 
@@ -28,7 +30,7 @@ if (numberOfRows.count === 0) {
     insert.run("thirdTask", 0);
 }
 
-const tasks = db.prepare("SELECT * FROM tasks").all();
+
 
 app.get('/', (req, res) => {
     res.json({ "name": "Task API", "version": "1.0", "endpoints": ["/tasks"] });
@@ -39,19 +41,17 @@ app.get('/health', (req, res) => {
 });
 
 app.get('/tasks', (req, res) => {
-    let filteredTasks = tasks;
     if (req.query.done) {
-        const doneQuery = db.prepare("SELECT * FROM tasks WHERE done = ?").all(req.query.done);
-        filteredTasks = doneQuery;
+        return res.send(db.prepare("SELECT * FROM tasks WHERE done = ?").all(req.query.done));
     }
 
     if (req.query.search) {
         const searchTerm = req.query.search.toLowerCase();
-        const searchQuery = db.prepare("SELECT * FROM tasks WHERE title LIKE ?;").all(searchTerm);
-        filteredTasks = searchQuery;
+        return res.send(db.prepare("SELECT * FROM tasks WHERE LOWER(title) LIKE ?;").all(searchTerm));
     }
 
-    res.send(filteredTasks)
+    const allTasks = db.prepare("SELECT * FROM tasks").all();
+    res.send(allTasks);
 });
 
 app.get('/tasks/:id', (req, res) => {
@@ -75,13 +75,14 @@ app.get('/stats', (req, res) => {
 
 app.post('/tasks', (req, res) => {
     const newTask = req.body;
-    const insert = db.prepare("INSERT INTO tasks (title, done) VALUES (?, ?)");
 
     if (!newTask.title) {
         return res.status(400).json({ "error": "Task title is required" });
     }
-    insert.run(newTask.title, 0);
-    res.status(201).json({ "message": "Task created", "task": newTask });
+    const insert = db.prepare("INSERT INTO tasks (title, done) VALUES (?, ?) RETURNING *");
+    const createdTask = insert.get(newTask.title, 0);
+
+    res.status(201).json({ "message": "Task created", "task": createdTask });
 });
 
 app.put('/tasks/:id', (req, res) => {
@@ -104,17 +105,16 @@ app.put('/tasks/:id', (req, res) => {
     const updatedTitle = req.body.title ?? task.title;
     const updatedDone = req.body.done ?? task.done;
 
-    db.prepare("UPDATE tasks SET title = ?, done = ? WHERE id = ?")
-        .run(updatedTitle, updatedDone, taskId);
-
+    const updatedTask = db.prepare(`
+        UPDATE tasks 
+        SET title = ?, done = ?, updated_at = CURRENT_TIMESTAMP 
+        WHERE id = ? 
+        RETURNING *
+    `).get(updatedTitle, updatedDone, taskId);
 
     res.status(200).json({
         "message": `Task ${taskId} updated`,
-        "task": {
-            id: taskId,
-            title: updatedTitle,
-            done: updatedDone
-        }
+        "task": updatedTask
     });
 });
 
